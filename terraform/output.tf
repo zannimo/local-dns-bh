@@ -1,5 +1,5 @@
 output "bastion_public_ip" {
-  description = "Automatic pubic IP address of bastion host"
+  description = "Automatic public IP address of bastion host"
   value       = aws_instance.bastion.public_ip
 }
 
