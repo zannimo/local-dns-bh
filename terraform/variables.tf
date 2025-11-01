@@ -37,7 +37,7 @@ variable "dns_server_ip" {
 variable "dns_forwarders" {
   description = "External DNS servers for forwarding"
   type        = list(string)
-  default     = ["8.8.8.8", "8.8.4.4"]  # Google DNS
+  default     = ["8.8.8.8", "8.8.4.4"] # Google DNS
 }
 
 variable "domain_name" {
@@ -56,8 +56,3 @@ variable "key_name" {
   type        = string
 }
 
-variable "ami_id" {
-  description = "Amazon Linux 2023 kernel-6.1 AMI"
-  type        = string
-  default     = "ami-0854d4f8e4bd6b834"
-}

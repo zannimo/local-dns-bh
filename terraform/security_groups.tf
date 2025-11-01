@@ -15,7 +15,7 @@ resource "aws_security_group" "bastion" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["${var.dns_server_ip}/32"] 
+    cidr_blocks = ["${var.dns_server_ip}/32"]
   }
 
   egress {
@@ -23,7 +23,7 @@ resource "aws_security_group" "bastion" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Ubuntu repos
+    cidr_blocks = ["0.0.0.0/0"] # Ubuntu repos
   }
 
   egress {
@@ -50,15 +50,15 @@ resource "aws_security_group" "bastion" {
     cidr_blocks = ["${var.dns_server_ip}/32"]
   }
 
-    egress {
+  egress {
     description = "NTP time sync to Amazon Time Sync Service"
     from_port   = 123
     to_port     = 123
     protocol    = "udp"
     cidr_blocks = ["169.254.169.123/32"]
-    }
-    
-    tags = {
+  }
+
+  tags = {
     Name    = "${var.project_name}-bastion-sg"
     Project = var.project_name
   }
@@ -99,7 +99,7 @@ resource "aws_security_group" "dns_server" {
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
-    cidr_blocks = ["8.8.8.8/32", "8.8.4.4/32"]  # Google DNS
+    cidr_blocks = ["8.8.8.8/32", "8.8.4.4/32"] # Google DNS
   }
 
   egress {
@@ -116,17 +116,17 @@ resource "aws_security_group" "dns_server" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-   }
+  }
 
   egress {
     description = "NTP time sync"
     from_port   = 123
     to_port     = 123
     protocol    = "udp"
-    cidr_blocks = ["169.254.169.123/32"]  # AWS Time Sync Service
+    cidr_blocks = ["169.254.169.123/32"] # AWS Time Sync Service
   }
 
-    tags = {
+  tags = {
     Name    = "${var.project_name}-dns-sg"
     Project = var.project_name
   }
@@ -196,8 +196,8 @@ resource "aws_security_group" "vpc_endpoint" {
   }
 }
 
-  # Separate rule to avoid Cycle error
-  resource "aws_security_group_rule" "clients_to_vpc_endpoint" {
+# Separate rule to avoid Cycle error
+resource "aws_security_group_rule" "clients_to_vpc_endpoint" {
   type                     = "egress"
   from_port                = 443
   to_port                  = 443

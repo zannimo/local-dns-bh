@@ -1,6 +1,6 @@
 resource "aws_iam_role" "client_ssm" {
   name = "${var.project_name}-client-ssm-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -11,7 +11,7 @@ resource "aws_iam_role" "client_ssm" {
       }
     }]
   })
-  
+
   tags = {
     Name    = "${var.project_name}-client-ssm-role"
     Project = var.project_name
