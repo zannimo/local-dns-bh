@@ -7,7 +7,7 @@ resource "aws_instance" "bastion" {
   associate_public_ip_address = true # != EIP. It will always change upon reboot of the instance. Considering adding an EIP later
 
   # User data to set hostname
-  user_data = <<-EOF # User data to set hostname
+  user_data = <<-EOF
               #!/bin/bash
               hostnamectl set-hostname bastion.${var.domain_name}
               EOF
@@ -40,7 +40,7 @@ resource "aws_instance" "dns_server" {
     Project = var.project_name
     Role    = "DNS"
   }
-
+}
 
 resource "aws_instance" "client1" {
   ami                    = var.ami_id
@@ -64,7 +64,10 @@ resource "aws_instance" "client1" {
    
 
   # Ensure DNS server is running before clients (not strictly needed, but in case instances need to rely on DNS for installs or updates)
-  depends_on = [aws_instance.dns_server]
+  depends_on = [
+    aws_instance.dns_server,
+    aws_iam_instance_profile.client_ssm
+    ]
 }
 
 
@@ -89,7 +92,9 @@ resource "aws_instance" "client2" {
   }
 
   # Ensure DNS server is running before clients (not strictly needed, but in case instances need to rely on DNS for installs or updates)
-  depends_on = [aws_instance.dns_server]
+  depends_on = [aws_instance.dns_server,
+  aws_iam_instance_profile.client_ssm
+  ]
 }
 
 resource "aws_iam_instance_profile" "client_ssm" {

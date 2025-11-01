@@ -15,7 +15,7 @@ resource "aws_security_group" "bastion" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.dns_server_ip] 
+    cidr_blocks = ["${var.dns_server_ip}/32"] 
   }
 
   egress {
@@ -39,7 +39,7 @@ resource "aws_security_group" "bastion" {
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
-    cidr_blocks = [var.dns_server_ip]
+    cidr_blocks = ["${var.dns_server_ip}/32"]
   }
 
   egress {
@@ -47,7 +47,7 @@ resource "aws_security_group" "bastion" {
     from_port   = 53
     to_port     = 53
     protocol    = "tcp"
-    cidr_blocks = [var.dns_server_ip]
+    cidr_blocks = ["${var.dns_server_ip}/32"]
   }
 
     egress {
@@ -55,13 +55,10 @@ resource "aws_security_group" "bastion" {
     from_port   = 123
     to_port     = 123
     protocol    = "udp"
-    cidr_blocks = ["169.254.169.123/32"] 
-}
-
-
-
-
-   tags = {
+    cidr_blocks = ["169.254.169.123/32"]
+    }
+    
+    tags = {
     Name    = "${var.project_name}-bastion-sg"
     Project = var.project_name
   }
@@ -147,7 +144,7 @@ resource "aws_security_group" "clients" {
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
-    cidr_blocks = [var.dns_server_ip]
+    cidr_blocks = ["${var.dns_server_ip}/32"]
   }
 
   egress {
@@ -155,7 +152,7 @@ resource "aws_security_group" "clients" {
     from_port   = 53
     to_port     = 53
     protocol    = "tcp"
-    cidr_blocks = [var.dns_server_ip]
+    cidr_blocks = ["${var.dns_server_ip}/32"]
   }
 
   egress {
@@ -182,17 +179,41 @@ resource "aws_security_group" "clients" {
     cidr_blocks = ["169.254.169.123/32"]
   }
 
-   # SSM Agent outbound 
-  egress {
-    description = "SSM Agent outbound"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Already covered by HTTPS, but explicit for clarity
-  }
-
   tags = {
     Name    = "${var.project_name}-clients-sg"
     Project = var.project_name
   }
+}
+
+resource "aws_security_group" "vpc_endpoint" {
+  name_prefix = "${var.project_name}-vpc_endpoint-"
+  description = "Security group for VPC endpoint"
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name    = "${var.project_name}-vpc_endpoint-sg"
+    Project = var.project_name
+  }
+}
+
+  # Separate rule to avoid Cycle error
+  resource "aws_security_group_rule" "clients_to_vpc_endpoint" {
+  type                     = "egress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.clients.id
+  source_security_group_id = aws_security_group.vpc_endpoint.id
+  description              = "VPC endpoint access"
+}
+
+# Separate rule: Allow VPC endpoint to accept traffic from clients
+resource "aws_security_group_rule" "vpc_endpoint_from_clients" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.vpc_endpoint.id
+  source_security_group_id = aws_security_group.clients.id
+  description              = "From clients"
 }
