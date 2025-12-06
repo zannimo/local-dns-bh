@@ -1,0 +1,17 @@
+options {
+    directory "/var/cache/bind";
+    
+    recursion yes;
+    allow-query { any; };              // Docker LAN queries lab.luigi
+    allow-recursion { 172.18.0.0/16; }; // Only Docker network
+    
+    // Production forwarders 
+    forwarders {
+        1.1.1.1;   // Cloudflare recursive resolver
+        8.8.8.8;   // Google recursive resolver
+    };
+    forward only;  // Never recurse → always delegate externals
+    
+    dnssec-validation auto;
+    listen-on-v6 { any; };
+};

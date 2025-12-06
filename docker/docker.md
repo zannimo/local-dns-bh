@@ -2,7 +2,7 @@
 ```
 open -a Docker 
 ```
-# Create your Docker bridge 
+# Create your cutomized Docker bridge network 
 ```
 docker network create my-dns-lan 
 ```
@@ -46,39 +46,60 @@ docker network inspect my-dns-lan
 ]
 ```
 
-# Create config files for the future DNS BIND server which will run in the container 
+# Create config files for the future DNS BIND server which will run in the container (in /etc/bind) 
 
-# Create named.conf.local:
-```
-zone "lab.luigi" {
-    type master;
-    file "/etc/bind/db.lab.luigi";
-};
-```
+## Create named.conf.local (see file)
 
-# Create db.lab.luigi with:
-```
-$TTL    604800 
-@       IN      SOA     ns.lab.luigi. root.lab.luigi. (
-                2025111502         ; Serial
-                    604800         ; Refresh
-                     86400         ; Retry
-                   2419200         ; Expire
-                    604800 )       ; Negative Cache TTL
-;
-@       IN      NS      ns.lab.luigi.
-@       IN      A       172.18.0.2  ; Server IP
-ns      IN      A       172.18.0.2
-client  IN      A       172.18.0.20  ; Client IP placeholder
-```
+## Create db.lab.luigi (see file)
+Your zone file, where you configure your records.
 
+## Create named.conf.options (see file)
+So you add recursion (by default disabled in BIND)
 
 # Launch the container:
+We are creating the dns-server in the my-dns-lan network
 ```
-docker run -d --name dns-server --network my-dns-lan \
+docker run -d --name dns-server --network my-dns-lan --dns 172.18.0.2 --ip 172.18.0.2 \
 -v $(pwd)/named.conf.local:/etc/bind/named.conf.local \
--v $(pwd)/db.mydomain.local:/etc/bind/db.lab.luigi \
+-v $(pwd)/db.lab.luigi:/etc/bind/db.lab.luigi \
+-v $(pwd)/named.conf.options:/etc/bind/named.conf.options \
 -p 53:53/udp -p 53:53/tcp \
 ubuntu/bind9
 ```
+
+# Test it with a disposable container 
+
+## Run a disposable linux container and launch the shell from within
+```
+docker run --rm -it --network my-dns-lan --dns 172.18.0.2 busybox sh
+```
+
+## Check if it recognizes the dns server with the address 172.18.0.2
+```
+nslookup ns.lab.luigi
+```
+
+# Time to create 2 persistent (not disposable) Linux containers on the same Docker network and test name resolution and connectivity between them
+```
+docker run -d \
+  --name client1 \
+  --network my-dns-lan \
+  --dns 172.18.0.2 \
+  --ip 172.18.0.3 \
+  busybox tail -f /dev/null
+
+docker run -d \
+  --name client2 \
+  --network my-dns-lan \
+  --dns 172.18.0.2 \
+  --ip 172.18.0.4 \
+  busybox tail -f /dev/null
+```
+
+# Test if they can resolve each other's names
+```
+docker exec client1 nslookup client2.lab.luigi
+```
+
+
 
