@@ -2,7 +2,7 @@
 ```
 open -a Docker 
 ```
-# Create your cutomized Docker bridge network 
+# Create a cutomized Docker bridge network 
 ```
 docker network create my-dns-lan 
 ```
@@ -51,13 +51,13 @@ docker network inspect my-dns-lan
 ## Create named.conf.local (see file)
 
 ## Create db.lab.luigi (see file)
-Your zone file, where you configure your records.
+The zone file, where the records are configured.
 
 ## Create named.conf.options (see file)
 So you add recursion (by default disabled in BIND)
 
 # Launch the container:
-We are creating the dns-server in the my-dns-lan network
+Create the dns-server in the my-dns-lan network, assigning it the ip address 172.18.0.2
 ```
 docker run -d --name dns-server --network my-dns-lan --dns 172.18.0.2 --ip 172.18.0.2 \
 -v $(pwd)/named.conf.local:/etc/bind/named.conf.local \

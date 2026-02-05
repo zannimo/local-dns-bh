@@ -111,11 +111,19 @@ resource "aws_security_group" "dns_server" {
   }
 
   egress {
-    description = "HTTP for package updates"
+    description = "HTTP for package install and updates"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "HTTPS for package updates"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Ubuntu repos
   }
 
   egress {

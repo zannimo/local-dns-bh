@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# 1. Update and Install BIND (Amazon Linux names)
+dnf update -y
+dnf install -y bind bind-utils
+
+# 2. Configure Options (Allowing the VPC to query)
+# Note: On Amazon Linux, we use only 1 file, /etc/named.conf instead of multiple files
+cat > /etc/named.conf << 'OPTIONS'
+options {
+        directory "/var/named"; # Standard AL2023 dir where the zone files are stored
+        
+        # REQUIRED: BIND refuses external traffic by default on AL2023
+        listen-on port 53 { any; }; 
+        
+        # Allow queries from VPC range
+        allow-query { localhost; ${vpc_cidr}; };
+
+        # Forwarding to Google DNS first
+        forward first;
+        forwarders {
+                8.8.8.8;
+                8.8.4.4;
+        };
+
+        dnssec-validation auto;
+};
+
+# 3. Define the Local Zone 
+zone "lab.luigi" {
+    type master;
+    file "db.lab.luigi"; # Path is relative to /var/named/
+};
+
+# So that amazon services can be reached (eg, SSM)
+zone "amazonaws.com" {
+    type forward;
+    forwarders { 169.254.169.253; };
+};
+OPTIONS
+
+# 4. Create the actual Zone File (Placed in /var/named/)
+cat > /var/named/db.lab.luigi << 'ZONEFILE'
+$TTL    604800
+@       IN      SOA      ns.lab.luigi. admin.lab.luigi. (
+                              2          ; Serial
+                         604800          ; Refresh
+                          86400          ; Retry
+                        2419200          ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns.lab.luigi.
+@       IN      A       ${dns_server_ip}
+ns      IN      A       ${dns_server_ip}
+client1 IN      A       ${client1_ip}
+client2 IN      A       ${client2_ip}
+ZONEFILE
+
+# 5. Fix Permissions & Restart (Essential for AL2023)
+chown root:named /etc/named.conf /var/named/db.lab.luigi
+chmod 640 /etc/named.conf /var/named/db.lab.luigi
+systemctl enable named
+systemctl restart named

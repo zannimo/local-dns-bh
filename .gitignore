@@ -5,4 +5,8 @@
 
 # Ignore operating system files
 .DS_Store
-../templatea/
+
+# Ignore other files
+local-dns-bh-summary.txt
+collect_code.sh
+local-dns-bh.drawio
