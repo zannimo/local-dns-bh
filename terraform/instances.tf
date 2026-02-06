@@ -3,8 +3,8 @@ resource "aws_instance" "bastion" {
   instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.bastion.id]
-  key_name                    = var.key_name # To load the public key uploaded in AWS EC2 into this instance for SSH access
-  associate_public_ip_address = true         # != EIP. It will always change upon reboot of the instance. Considering adding an EIP later
+  key_name                    = aws_key_pair.generated_key.key_name
+  associate_public_ip_address = true # != EIP. It will always change upon reboot of the instance. Considering adding an EIP later
 
   # User data to set hostname
   user_data = <<-EOF
@@ -25,7 +25,7 @@ resource "aws_instance" "dns_server" {
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.private.id
   vpc_security_group_ids = [aws_security_group.dns_server.id]
-  key_name               = var.key_name # To load the public key uploaded in AWS EC2 into this instance for SSH access
+  key_name               = aws_key_pair.generated_key.key_name
   private_ip             = var.dns_server_ip
 
   # User data to set hostname and DNS server
@@ -98,3 +98,7 @@ resource "aws_iam_instance_profile" "client_ssm" {
   }
 }
 
+resource "aws_key_pair" "generated_key" {
+  key_name   = var.key_name
+  public_key = file("~/.ssh/local-dns-bh-key.pub")
+}
