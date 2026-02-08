@@ -54,6 +54,10 @@ resource "aws_instance" "client1" {
   user_data = <<-EOF
               #!/bin/bash
               hostnamectl set-hostname client1.${var.domain_name}
+
+              # Install networking tools for verification
+              dnf update -y
+              dnf install -y bind-utils
               EOF
 
   iam_instance_profile = aws_iam_instance_profile.client_ssm.name
@@ -77,6 +81,10 @@ resource "aws_instance" "client2" {
   user_data = <<-EOF
               #!/bin/bash
               hostnamectl set-hostname client2.${var.domain_name}
+
+              # Install networking tools for verification
+              dnf update -y
+              dnf install -y bind-utils
               EOF
 
   iam_instance_profile = aws_iam_instance_profile.client_ssm.name
