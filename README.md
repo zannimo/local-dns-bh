@@ -8,6 +8,8 @@ Experimented accessing the instances via **Bastion Host** (the DNS server) as we
 
 In the other branch, “**secure-s3-version**”, I worked on some security improvement from an architectural standpoint: I ditched the Bastion Host in favor of SSM for all instances, and I connected them to S3 via prefix list to retrieve OS updates, rather than going out via the Internet via NAT. The NAT remained exclusively for DNS resolution forwarding (to the Google forwarder)
 
+## ![Project Architecture](./local-dns-bh.drawio.svg.svg)
+
 ## **📁 Project Structure**
 
 local-dns-bh/  
