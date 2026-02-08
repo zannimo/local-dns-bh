@@ -3,7 +3,6 @@ output "bastion_public_ip" {
   value       = aws_instance.bastion.public_ip
 }
 
-
 output "dns_server_ip" {
   description = "Private IP of DNS server"
   value       = aws_instance.dns_server.private_ip
@@ -17,7 +16,12 @@ output "client_instance_ids" {
   }
 }
 
-output "ssh_command" {
-  description = "SSH command to connect to bastion"
-  value       = "ssh -i ~/.ssh/${var.key_name}.pem ec2-user@${aws_instance.bastion.public_ip}"
+output "SSM_command_client1" {
+  description = "SSH command to connect to client1"
+  value       = "aws ssm start-session --target ${aws_instance.client1.id}"
+}
+
+output "SSM_command_client2" {
+  description = "SSH command to connect to client1"
+  value       = "aws ssm start-session --target ${aws_instance.client2.id}"
 }
