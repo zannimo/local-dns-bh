@@ -10,3 +10,5 @@
 local-dns-bh-summary.txt
 collect_code.sh
 local-dns-bh.drawio
+.envrc
+local-dns-bh-summary(old).txt
