@@ -1,4 +1,0 @@
-zone "lab.luigi" {
-    type master;
-    file "/etc/bind/db.lab.luigi";
-};

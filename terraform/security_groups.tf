@@ -1,82 +1,7 @@
-resource "aws_security_group" "bastion" {
-  name_prefix = "${var.project_name}-bastion-"
-  description = "Security group for bastion host"
-  vpc_id      = aws_vpc.main.id
-  ingress {
-    description = "SSH from allowed IPs"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.my_ip]
-  }
-
-  egress {
-    description = "SSH to DNS server"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["${var.dns_server_ip}/32"]
-  }
-
-  egress {
-    description = "HTTPS for package updates"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Ubuntu repos
-  }
-
-  egress {
-    description = "HTTP for package updates"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Ubuntu repos
-  }
-
-  egress {
-    description = "DNS UDP to DNS server"
-    from_port   = 53
-    to_port     = 53
-    protocol    = "udp"
-    cidr_blocks = ["${var.dns_server_ip}/32"]
-  }
-
-  egress {
-    description = "DNS TCP to DNS server"
-    from_port   = 53
-    to_port     = 53
-    protocol    = "tcp"
-    cidr_blocks = ["${var.dns_server_ip}/32"]
-  }
-
-  egress {
-    description = "NTP time sync to Amazon Time Sync Service"
-    from_port   = 123
-    to_port     = 123
-    protocol    = "udp"
-    cidr_blocks = ["169.254.169.123/32"]
-  }
-
-  tags = {
-    Name    = "${var.project_name}-bastion-sg"
-    Project = var.project_name
-  }
-}
-
 resource "aws_security_group" "dns_server" {
   name_prefix = "${var.project_name}-dns-"
   description = "Security group for DNS server"
   vpc_id      = aws_vpc.main.id
-
-  # Allow SSH from bastion host
-  ingress {
-    description     = "SSH from bastion"
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.bastion.id]
-  }
 
   ingress {
     description = "DNS UDP from VPC"
@@ -99,7 +24,7 @@ resource "aws_security_group" "dns_server" {
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
-    cidr_blocks = ["8.8.8.8/32", "8.8.4.4/32"] # Google DNS
+    cidr_blocks = ["8.8.8.8/32", "8.8.4.4/32"] # Google DNS forwarder
   }
 
   egress {
@@ -111,19 +36,11 @@ resource "aws_security_group" "dns_server" {
   }
 
   egress {
-    description = "HTTP for package install and updates"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "HTTPS for package updates"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Ubuntu repos
+    description     = "HTTP for package install and updates via S3 gateway endpoint"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_prefix_list.s3.id]
   }
 
   egress {
@@ -164,19 +81,11 @@ resource "aws_security_group" "clients" {
   }
 
   egress {
-    description = "HTTPS for testing/updates"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "HTTP for testing/updates"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "HTTP for package install and updates via S3 gateway endpoint"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_prefix_list.s3.id]
   }
 
   egress {
@@ -204,24 +113,31 @@ resource "aws_security_group" "vpc_endpoint" {
   }
 }
 
-# Separate rule to avoid Cycle error
-resource "aws_security_group_rule" "clients_to_vpc_endpoint" {
-  type                     = "egress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.clients.id
-  source_security_group_id = aws_security_group.vpc_endpoint.id
-  description              = "VPC endpoint access"
+# Separate rules to avoid Cycle errors
+
+resource "aws_security_group_rule" "endpoint_ingress" {
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = [aws_vpc.main.cidr_block] # Everyone in the VPC can connect
+  security_group_id = aws_security_group.vpc_endpoint.id
 }
 
-# Separate rule: Allow VPC endpoint to accept traffic from clients
-resource "aws_security_group_rule" "vpc_endpoint_from_clients" {
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.vpc_endpoint.id
-  source_security_group_id = aws_security_group.clients.id
-  description              = "From clients"
+resource "aws_security_group_rule" "dns_server_egress_to_ssm" {
+  type              = "egress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = [aws_vpc.main.cidr_block]
+  security_group_id = aws_security_group.dns_server.id
+}
+
+resource "aws_security_group_rule" "clients_egress_to_ssm" {
+  type              = "egress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = [aws_vpc.main.cidr_block]
+  security_group_id = aws_security_group.clients.id
 }

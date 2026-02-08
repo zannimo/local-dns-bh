@@ -137,6 +137,19 @@ resource "aws_vpc_endpoint" "ssmmessages" {
   }
 }
 
+# This is for the instances' OS updates 
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id       = aws_vpc.main.id
+  service_name = "com.amazonaws.${var.aws_region}.s3"
+
+  # Adding this S3 routing to my route table
+  route_table_ids = [aws_route_table.private.id]
+
+  tags = {
+    Name = "s3-endpoint"
+  }
+}
+
 
 # Route Table Association - Public Subnet
 resource "aws_route_table_association" "public" {

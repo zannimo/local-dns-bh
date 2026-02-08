@@ -32,9 +32,10 @@ zone "lab.luigi" {
     file "db.lab.luigi"; # Path is relative to /var/named/
 };
 
-# So that amazon services can be reached (eg, SSM)
+# # Force internal resolution for this domain (eg, SSM)
 zone "amazonaws.com" {
     type forward;
+    forward only;
     forwarders { 169.254.169.253; };
 };
 OPTIONS

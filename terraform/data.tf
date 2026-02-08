@@ -17,3 +17,8 @@ data "aws_ami" "amazon_linux_2023" {
     values = ["available"]
   }
 }
+
+# This fetches the unique Prefix List ID for S3 in your current region
+data "aws_prefix_list" "s3" {
+  name = "com.amazonaws.${var.aws_region}.s3"
+}

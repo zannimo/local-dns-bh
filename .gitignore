@@ -7,6 +7,5 @@
 .DS_Store
 
 # Ignore other files
-local-dns-bh-summary.txt
+*summary.txt
 collect_code.sh
-local-dns-bh.drawio
